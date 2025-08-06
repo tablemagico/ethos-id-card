@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>ETHOS ID Card</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --gap: 12px;
+    }
+
+    .bg-ethos {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+    }
+
+    body {
+      font-family: Inter, system-ui, Arial, sans-serif;
+      margin: 0;
+      padding: 28px;
+      display: grid;
+      place-items: start center;
+      gap: var(--gap);
+      background: transparent;
+    }
+
+    h2 {
+      margin: 0 0 8px 0;
+    }
+
+    .row {
+      display: flex;
+      gap: var(--gap);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    label {
+      font-size: 14px;
+      color: #374151;
+    }
+
+    input[type="text"] {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    input[type="file"] {
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button.primary {
+      background: #4f74d9;
+      color: #fff;
+      border-color: #4f74d9;
+    }
+
+    canvas {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ETHOS Background -->
+  <svg class="bg-ethos" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="ethosGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#f5f8ff" />
+        <stop offset="50%" stop-color="#eaf0ff" />
+        <stop offset="100%" stop-color="#ffffff" />
+      </linearGradient>
+      <pattern id="ethosPattern" width="60" height="60" patternUnits="userSpaceOnUse">
+        <path d="M30 6 L54 30 L30 54 L6 30 Z" fill="#eaf1ff" stroke="#d7e2ff" stroke-width="1" />
+        <path d="M30 18 L42 30 L30 42 L18 30 Z" fill="#f4f7ff" stroke="#e6edff" stroke-width="0.5" />
+      </pattern>
+      <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="60" />
+      </filter>
+    </defs>
+    <rect width="1600" height="900" fill="url(#ethosGrad)" />
+    <rect width="1600" height="900" fill="url(#ethosPattern)" opacity="0.28" />
+    <g filter="url(#softBlur)" opacity="0.34">
+      <circle cx="250" cy="200" r="230" fill="#4f74d9" />
+      <circle cx="1320" cy="160" r="180" fill="#9fb0ff" />
+      <circle cx="1200" cy="780" r="260" fill="#c8d4ff" />
+    </g>
+    <rect y="820" width="1600" height="80" fill="#4f74d9" opacity="0.18" />
+    <rect y="820" width="1600" height="80" fill="url(#ethosPattern)" opacity="0.22" />
+  </svg>
+
+  <h2>ETHOS ID Card Generator</h2>
+
+  <div class="row">
+    <label for="avatarFile"><strong>Avatar:</strong></label>
+    <input id="avatarFile" type="file" accept="image/*" />
+    <input id="username" type="text" placeholder="@username" />
+    <input id="countText" type="text" placeholder="Number of ETH OS Posts" />
+    <button id="renderBtn" class="primary">Generate</button>
+    <button id="downloadBtn" disabled>Download ID Card</button>
+  </div>
+
+  <canvas id="card" width="1365" height="768"></canvas>
+
+  <script>
+    const PFP = { x: 271, y: 286, w: 258, h: 327 };
+    const USER = { x: 571, y: 335, size: 40, weight: '600', color: '#4f74d9' };
+    const COUNT = { x: 574, y: 462, size: 40, weight: '600', color: '#4f74d9' };
+
+    const canvas = document.getElementById('card');
+    const ctx = canvas.getContext('2d');
+
+    let baseImg = null;
+    let avatarImg = null;
+
+    loadImage('id-card-base.png').then(img => { baseImg = img; drawBase(); })
+      .catch(() => alert('Place "id-card-base.png" next to this file.'));
+
+    function loadImage(src) {
+      return new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = () => rej(new Error('Image load error: ' + src));
+        img.src = src;
+      });
+    }
+
+    function drawBase() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (baseImg) ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
+    }
+
+    function drawLabel(text, x, y, size, weight, color) {
+      if (!text) return;
+      ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, y);
+    }
+
+    function drawAvatar() {
+      if (!avatarImg) return;
+      const s = Math.min(avatarImg.width, avatarImg.height);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(PFP.x, PFP.y, PFP.w, PFP.h);
+      ctx.clip();
+      ctx.drawImage(
+        avatarImg,
+        (avatarImg.width - s) / 2, (avatarImg.height - s) / 2, s, s,
+        PFP.x, PFP.y, PFP.w, PFP.h
+      );
+      ctx.restore();
+    }
+
+    async function render() {
+      drawBase();
+      drawAvatar();
+      const uname = document.getElementById('username').value.trim();
+      const cnt = document.getElementById('countText').value.trim();
+      drawLabel(uname, USER.x, USER.y, USER.size, USER.weight, USER.color);
+      drawLabel(cnt, COUNT.x, COUNT.y, COUNT.size, COUNT.weight, COUNT.color);
+      document.getElementById('downloadBtn').disabled = false;
+    }
+
+    document.getElementById('avatarFile').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      avatarImg = await loadImage(url);
+    });
+
+    document.getElementById('renderBtn').addEventListener('click', render);
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.download = 'ethos-id-card.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    });
+
+    (function init() { drawBase(); })();
+  </script>
+</body>
+
+</html>
